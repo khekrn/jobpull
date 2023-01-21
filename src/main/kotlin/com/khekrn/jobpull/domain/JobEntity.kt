@@ -1,5 +1,6 @@
 package com.khekrn.jobpull.domain
 
+import com.fasterxml.jackson.annotation.JsonRawValue
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
@@ -11,13 +12,18 @@ data class JobEntity(
     @Id
     var id: Long? = null,
 
-    @Column(value = "task_name")
+    @Column(value = "job_name")
     var jobName: String,
 
-    @Column(value = "task_type")
+    @Column(value = "job_type")
     var jobType: String,
 
+    @JsonRawValue
     var payload: String,
+
+    var retries: Int,
+
+    var status: String,
 
     @Column("created_at")
     var createdAt: LocalDateTime?,

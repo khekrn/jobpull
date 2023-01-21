@@ -1,4 +1,14 @@
 package com.khekrn.jobpull.domain
 
-data class JobDTO(val jobName: String, val jobType: String, val data: String)
+import com.fasterxml.jackson.annotation.JsonProperty
+
+data class JobDTO(
+    @JsonProperty("jobName")
+    val jobName: String,
+    @JsonProperty("jobType")
+    val jobType: String,
+
+    @JsonProperty("data")
+    val payload: MutableMap<String, Any>
+)
 

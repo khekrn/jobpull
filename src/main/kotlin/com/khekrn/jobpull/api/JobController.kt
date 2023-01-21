@@ -1,5 +1,6 @@
 package com.khekrn.jobpull.api
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.khekrn.jobpull.domain.JobDTO
 import com.khekrn.jobpull.domain.JobEntity
 import com.khekrn.jobpull.domain.JobRepository
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.time.LocalDateTime
@@ -19,19 +21,23 @@ class JobController(private val jobRepository: JobRepository) {
 
     private val logger = LoggerFactory.getLogger(JobController::class.java)
 
+    private val objectMapper = ObjectMapper()
+
     @GetMapping("/healthCheck")
     fun healthCheck(): ResponseEntity<String>{
         return ResponseEntity.ok("Service is up and running")
     }
 
     @PostMapping("/job", produces = [MediaType.APPLICATION_JSON_VALUE], consumes = [MediaType.APPLICATION_JSON_VALUE])
-    suspend fun addJob(job: JobDTO): ResponseEntity<String> {
+    suspend fun addJob(@RequestBody job: JobDTO): ResponseEntity<String> {
         logger.info("In addJob")
         logger.debug("Received Data = {}", job)
         var jobEntity = JobEntity(
             jobName = job.jobName,
             jobType = job.jobType,
-            payload = job.data,
+            payload = objectMapper.writeValueAsString(job.payload),
+            retries = 0,
+            status = "ENQUEUED",
             createdAt = LocalDateTime.now()
         )
 
