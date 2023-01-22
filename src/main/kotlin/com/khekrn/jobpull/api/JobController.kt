@@ -7,31 +7,29 @@ import com.khekrn.jobpull.domain.JobRepository
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
 
 @RestController(value = "Job")
 @RequestMapping("/api/v1")
-class JobController(private val jobRepository: JobRepository) {
+class JobController(
+    private val jobRepository: JobRepository
+    //private val redissonClient: RedissonClient
+) {
 
     private val logger = LoggerFactory.getLogger(JobController::class.java)
 
     private val objectMapper = ObjectMapper()
 
     @GetMapping("/healthCheck")
-    fun healthCheck(): ResponseEntity<String>{
+    fun healthCheck(): ResponseEntity<String> {
         return ResponseEntity.ok("Service is up and running")
     }
 
     @PostMapping("/job", produces = [MediaType.APPLICATION_JSON_VALUE], consumes = [MediaType.APPLICATION_JSON_VALUE])
     suspend fun addJob(@RequestBody job: JobDTO): ResponseEntity<String> {
         logger.info("In addJob")
-        logger.debug("Received Data = {}", job)
+        logger.info("Received Data = {}", job)
         var jobEntity = JobEntity(
             jobName = job.jobName,
             jobType = job.jobType,
@@ -42,20 +40,29 @@ class JobController(private val jobRepository: JobRepository) {
         )
 
         jobEntity = jobRepository.save(jobEntity)
-        logger.debug("After saving the job entity = {}", jobEntity)
-        return ResponseEntity.ok("Job Created")
+
+       /* val rQueue = redissonClient.getQueue<JobEntity>("jobs")
+        val result = rQueue.addAsync(jobEntity).toCompletableFuture().await()
+        logger.info("After adding the values in redis = {}", result)*/
+
+        logger.info("After saving the job entity = {}", jobEntity)
+        return ResponseEntity.ok("Job Created with id "+jobEntity.id)
     }
 
     @GetMapping("/job/{jobId}")
-    suspend fun getJob(@PathVariable("jobId") id: Long): ResponseEntity<Any>{
+    suspend fun getJob(@PathVariable("jobId") id: Long): ResponseEntity<Any> {
         logger.info("In getJob")
-        logger.debug("Fetching job details for {}", id)
+        logger.info("Fetching job details for {}", id)
+
+        /*val rQueue = redissonClient.getQueue<JobEntity>("jobs")
+        val entity = rQueue.pollAsync().toCompletableFuture().await()
+        logger.info("After fetching it from redis = {}", entity)*/
 
         val jobEntity = jobRepository.findById(id)
         logger.info("Return from getJob")
-        return if (jobEntity == null){
+        return if (jobEntity == null) {
             ResponseEntity.badRequest().body("Invalid id is provided")
-        }else{
+        } else {
             ResponseEntity.ok(jobEntity)
         }
     }
