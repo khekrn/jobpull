@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.khekrn.jobpull.domain.JobDTO
 import com.khekrn.jobpull.domain.JobEntity
 import com.khekrn.jobpull.domain.JobRepository
+import kotlinx.coroutines.future.await
+import org.redisson.api.RedissonClient
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -13,8 +15,8 @@ import java.time.LocalDateTime
 @RestController(value = "Job")
 @RequestMapping("/api/v1")
 class JobController(
-    private val jobRepository: JobRepository
-    //private val redissonClient: RedissonClient
+    private val jobRepository: JobRepository,
+    private val redissonClient: RedissonClient
 ) {
 
     private val logger = LoggerFactory.getLogger(JobController::class.java)
@@ -41,23 +43,18 @@ class JobController(
 
         jobEntity = jobRepository.save(jobEntity)
 
-       /* val rQueue = redissonClient.getQueue<JobEntity>("jobs")
-        val result = rQueue.addAsync(jobEntity).toCompletableFuture().await()
-        logger.info("After adding the values in redis = {}", result)*/
+        val rQueue = redissonClient.getQueue<Long>("jobs")
+        val result = rQueue.addAsync(jobEntity.id).toCompletableFuture().await()
+        logger.info("After adding the values in redis = {}", result)
 
         logger.info("After saving the job entity = {}", jobEntity)
-        return ResponseEntity.ok("Job Created with id "+jobEntity.id)
+        return ResponseEntity.ok("Job Created with id " + jobEntity.id)
     }
 
     @GetMapping("/job/{jobId}")
     suspend fun getJob(@PathVariable("jobId") id: Long): ResponseEntity<Any> {
         logger.info("In getJob")
         logger.info("Fetching job details for {}", id)
-
-        /*val rQueue = redissonClient.getQueue<JobEntity>("jobs")
-        val entity = rQueue.pollAsync().toCompletableFuture().await()
-        logger.info("After fetching it from redis = {}", entity)*/
-
         val jobEntity = jobRepository.findById(id)
         logger.info("Return from getJob")
         return if (jobEntity == null) {
