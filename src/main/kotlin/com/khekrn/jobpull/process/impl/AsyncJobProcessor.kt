@@ -1,23 +1,19 @@
 package com.khekrn.jobpull.process.impl
 
 import com.khekrn.jobpull.domain.JobEntity
-import com.khekrn.jobpull.domain.JobRepository
 import com.khekrn.jobpull.executor.JobExecutor
 import com.khekrn.jobpull.process.JobProcessor
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import org.redisson.api.RedissonClient
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import kotlin.coroutines.CoroutineContext
 
 @Component
 class AsyncJobProcessor(
-    private val jobExecutor: JobExecutor,
-    private val redissonClient: RedissonClient,
-    private val jobsRepository: JobRepository
+    private val jobExecutor: JobExecutor
 ) : JobProcessor, CoroutineScope {
 
     private val logger = LoggerFactory.getLogger(AsyncJobProcessor::class.java)
