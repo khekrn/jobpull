@@ -25,7 +25,7 @@ class JobQueueConfig(
     fun initialize() {
         val flyway = Flyway.configure()
             .dataSource(
-                env.getProperty("flyway.jdbc.url"),
+                env.getProperty("spring.flyway.url"),
                 env.getProperty("spring.r2dbc.username"),
                 env.getProperty("spring.r2dbc.password")
             ).load()
