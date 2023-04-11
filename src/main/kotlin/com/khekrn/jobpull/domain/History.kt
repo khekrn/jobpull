@@ -6,11 +6,13 @@ import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.LocalDateTime
 
-
-@Table(value = "job")
-data class JobEntity(
+@Table(value = "job_history")
+data class History(
     @Id
     var id: Long? = null,
+
+    @Column(value = "job_id")
+    var jobId: Long? = null,
 
     @Column(value = "name")
     var jobName: String,
@@ -18,13 +20,10 @@ data class JobEntity(
     @Column(value = "type")
     var jobType: String,
 
-    @JsonRawValue
-    var payload: String,
-
-    @JsonRawValue
-    var variables: String,
-
     var status: String,
+
+    @Column(value = "service_name")
+    var serviceName: String,
 
     @Column("created_at")
     var createdAt: LocalDateTime?,

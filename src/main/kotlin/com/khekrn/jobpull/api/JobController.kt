@@ -1,11 +1,10 @@
 package com.khekrn.jobpull.api
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.khekrn.jobpull.domain.JobDTO
+import com.khekrn.jobpull.domain.JobRequest
 import com.khekrn.jobpull.domain.JobEntity
 import com.khekrn.jobpull.domain.JobRepository
-import kotlinx.coroutines.future.await
-import org.redisson.api.RedissonClient
+import com.khekrn.jobpull.json.JsonUtils
+import com.khekrn.jobpull.poller.Scheduler
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -15,13 +14,11 @@ import java.time.LocalDateTime
 @RestController(value = "Job")
 @RequestMapping("/api/v1")
 class JobController(
-    private val jobRepository: JobRepository,
-    private val redissonClient: RedissonClient
+    private val scheduler: Scheduler,
+    private val jobRepository: JobRepository
 ) {
 
     private val logger = LoggerFactory.getLogger(JobController::class.java)
-
-    private val objectMapper = ObjectMapper()
 
     @GetMapping("/healthCheck")
     fun healthCheck(): ResponseEntity<String> {
@@ -29,32 +26,43 @@ class JobController(
     }
 
     @PostMapping("/job", produces = [MediaType.APPLICATION_JSON_VALUE], consumes = [MediaType.APPLICATION_JSON_VALUE])
-    suspend fun addJob(@RequestBody job: JobDTO): ResponseEntity<String> {
+    suspend fun addJob(@RequestBody job: JobRequest): ResponseEntity<String> {
         logger.info("In addJob")
-        logger.info("Received Data = {}", job)
+        logger.debug("Received Data = {}", job)
+
+        val payload = JsonUtils.toJson(job.data)
         var jobEntity = JobEntity(
             jobName = job.jobName,
             jobType = job.jobType,
-            payload = objectMapper.writeValueAsString(job.payload),
-            retries = 0,
+            payload = payload,
+            variables = payload,
             status = "ENQUEUED",
             createdAt = LocalDateTime.now()
         )
 
         jobEntity = jobRepository.save(jobEntity)
-
-        val rQueue = redissonClient.getQueue<Long>("jobs")
-        val result = rQueue.addAsync(jobEntity.id).toCompletableFuture().await()
-        logger.info("After adding the values in redis = {}", result)
-
-        logger.info("After saving the job entity = {}", jobEntity)
-        return ResponseEntity.ok("Job Created with id " + jobEntity.id)
+        logger.debug("After saving the job entity = {}", jobEntity)
+        return ResponseEntity.ok("Job Created")
     }
+
+    @PostMapping(
+        "/job/stop",
+        produces = [MediaType.APPLICATION_JSON_VALUE],
+        consumes = [MediaType.APPLICATION_JSON_VALUE]
+    )
+    suspend fun stopPoll(): ResponseEntity<String> {
+        logger.info("In jobPoll")
+
+        scheduler.stopPolling()
+        return ResponseEntity.ok("Stopping the polling now")
+    }
+
 
     @GetMapping("/job/{jobId}")
     suspend fun getJob(@PathVariable("jobId") id: Long): ResponseEntity<Any> {
         logger.info("In getJob")
-        logger.info("Fetching job details for {}", id)
+        logger.debug("Fetching job details for {}", id)
+
         val jobEntity = jobRepository.findById(id)
         logger.info("Return from getJob")
         return if (jobEntity == null) {
